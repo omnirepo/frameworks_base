@@ -5670,7 +5670,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     }
 
-    // Unload all the theme accents
+    // Unload all the theme accents overlays
     public void unloadAccents() {
         OverlayInfo themeInfo = null;
         try {
@@ -5719,6 +5719,18 @@ public class StatusBar extends SystemUI implements DemoMode,
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+    }
+
+    // Switches the analog clock from one to another or back to stock
+    public void updateClocks() {
+        int clockSetting = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.LOCKSCREEN_CLOCK_SELECTION, 0, mCurrentUserId);
+        StatusBar.updateClocks(mOverlayManager, mCurrentUserId, clockSetting, mContext);
+    }
+
+    // Unload all the analog overlays
+    public void unloadClocks() {
+        StatusBar.unloadClocks(mOverlayManager, mCurrentUserId, mContext);
     }
 
     private void updateDozingState() {
@@ -7029,7 +7041,6 @@ public class StatusBar extends SystemUI implements DemoMode,
             } else if (uri.equals(Settings.System.getUriFor(Settings.System.HIDE_LOCKSCREEN_ALARM)) ||
                     uri.equals(Settings.System.getUriFor(Settings.System.HIDE_LOCKSCREEN_CLOCK)) ||
                     uri.equals(Settings.System.getUriFor(Settings.System.HIDE_LOCKSCREEN_DATE)) ||
-                    uri.equals(Settings.System.getUriFor(Settings.System.LOCKSCREEN_CLOCK_SELECTION)) ||
                     uri.equals(Settings.System.getUriFor(Settings.System.LOCKSCREEN_DATE_SELECTION))) {
                 updateKeyguardStatusSettings();
             } else if (uri.equals(Settings.System.getUriFor(
@@ -7038,7 +7049,12 @@ public class StatusBar extends SystemUI implements DemoMode,
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.LESS_BORING_HEADS_UP))) {
                 setUseLessBoringHeadsUp();
-            } 
+            } else if (uri.equals(Settings System.getUriFor(
+                    Settings.System.LOCKSCREEN_CLOCK_SELECTION))) {
+                unloadClocks();
+                updateClocks();
+                updateKeyguardStatusSettings();
+            }
         }
 
         public void update() {
@@ -9044,4 +9060,39 @@ public class StatusBar extends SystemUI implements DemoMode,
     public void stopBrightnessControl() {
         mHandler.removeCallbacks(mLongPressBrightnessChange);
     }
+		private static final String[] getClocks(Context ctx) {
+        final String list = ctx.getResources().getString(com.android.internal.R.string.custom_clock_styles);
+        return list.split(",");
+    }
+
+		// Switches the analog clock from one to another or back to stock
+    public static void updateClocks(IOverlayManager om, int userId, int clockSetting, Context ctx) {
+        // all clock already unloaded due to StatusBar observer unloadClocks call
+        // set the custom analog clock overlay
+        if (clockSetting > 4) {
+            try {
+                final String[] clocks = StatusBar.getClocks(ctx);
+                om.setEnabled(clocks[clockSetting],
+                        true, userId);
+            } catch (RemoteException e) {
+                Log.w(TAG, "Can't change analog clocks", e);
+            }
+        }
+    }
+
+    // Unload all the analog clocks
+    public static void unloadClocks(IOverlayManager om, int userId, Context ctx) {
+        // skip index 0
+        final String[] clocks = StatusBar.getClocks(ctx);
+        for (int i = 1; i < clocks.length; i++) {
+            String clock = clocks[i];
+            try {
+                om.setEnabled(clock,
+                        false /*disable*/, userId);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
