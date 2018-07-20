@@ -7049,7 +7049,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.LESS_BORING_HEADS_UP))) {
                 setUseLessBoringHeadsUp();
-            } else if (uri.equals(Settings System.getUriFor(
+            } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.LOCKSCREEN_CLOCK_SELECTION))) {
                 unloadClocks();
                 updateClocks();
